@@ -165,6 +165,7 @@ def myOCR_start(im):
 			if distance<min_distance:
 				tmp_res=j
 				min_distance=distance
+			#print tmp_res,min_distance
 		result+=str(tmp_res)
 	return result
 
