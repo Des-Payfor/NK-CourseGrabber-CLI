@@ -1,15 +1,17 @@
-NK-CourseGrabber
+NK-CourseGrabber (Command Line Version)
 ================
 
-一键刷课 for NKU
+一键刷课 for NKU -- Command Line Interface
 
 文件说明
 ================
 
-source_code：源代码&用到的数据和图标，详见source_code下的README
+可执行文件以及GUI版本的最新版请戳这里：（Win, MacOS & Source code）
+   https://github.com/Neon4o4/NKU-SSS/tree/master/NK-CourseGrabber
 
-MacOSX：为MaxOSX下的可执行文件。在OS X 9&10测试通过。
-
+CLI: 这是一个命令行界面的版本，运行需要Python2.7以及PIL库。
+    （我不会告诉你它有一些奇怪的功能的）
 
 LICENSE
 ================
+GPLv2
