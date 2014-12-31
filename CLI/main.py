@@ -15,23 +15,20 @@ import time
 import myOCR
 
 #----------------------------------------------------
-addr="http://222.30.32.10/ValidateCode"
-
-hosturl="http://222.30.32.10/"
-
-posturl="http://222.30.32.10/stdloginAction.do"
-
-UpUrl = 'http://222.30.32.10/xsxk/swichAction.do'
-
-HEADERS = ''
+URL = {
+	"Host" : "http://222.30.32.10/",
+	"ValidateCode" : "http://222.30.32.10/ValidateCode",
+	"Login" : "http://222.30.32.10/stdloginAction.do",
+	"Post" : "http://222.30.32.10/xsxk/swichAction.do"
+}
 
 Login_S = False
 StopSignal = False
 
-STUDENT_ID=''
-PASSWORD=''
+STUDENT_ID='1210020'
+PASSWORD='****'
 
-headers= {
+HEADERS= {
 'Accept':' application/x-ms-application, image/jpeg, application/xaml+xml, image/gif, image/pjpeg, application/x-ms-xbap, */*',
 'Referer':' http://222.30.32.10/xsxk/swichAction.do',
 'Accept-Language':' zh-CN',
@@ -43,7 +40,6 @@ headers= {
 'Cookie':''
 }
 
-HEADERS = headers
 PROCESSING = False
 
 #--------------------------------------------------------------------------------------------
@@ -60,17 +56,8 @@ def ReLoadData():
 		conn.close()
 	except:
 		return False
-	headers= {
-	'Accept':' application/x-ms-application, image/jpeg, application/xaml+xml, image/gif, image/pjpeg, application/x-ms-xbap, */*',
-	'Referer':' http://222.30.32.10/xsxk/swichAction.do',
-	'Accept-Language':' zh-CN',
-	'Content-Type':' application/x-www-form-urlencoded',
-	'Accept-Encoding':' gzip, deflate',
-	'User-Agent':' Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.1; WOW64; Trident/5.0; SLCC2; .NET CLR 2.0.50727; .NET CLR 3.5.30729; .NET CLR 3.0.30729; Media Center PC 6.0; .NET4.0C; .NET4.0E; InfoPath.3)',
-	'Host':' 222.30.32.10',
-	'Pragma':' no-cache',
-	'Cookie':cookie
-	}
+	headers= HEADERS
+	headers['Cookie'] = cookie
 	#get ValidateCode
 	try:
 		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
@@ -82,126 +69,89 @@ def ReLoadData():
 		conn.close()
 	except:
 		return False
-
 	HEADERS = headers
 	PROCESSING = False
 	Login_S = False
 	return True
 
 #----------------------------------------------------
+def INIT():
+	global ValidateCode
+	Network=True
+	if not ReLoadData():
+		Network=False
+	ValidateCode=PIL.Image.open("ValidateCode.jpg")
+	if not Network:
+		print "网络连接错误，无法连接到选课系统。请检查网络连接！"
+		return False
+	return True
 
-		
-Network=True
-if not ReLoadData():
-	Network=False
-ValidateCode=PIL.Image.open("ValidateCode.jpg")
-if not Network:
-	print "网络连接错误，无法连接到选课系统。请检查网络连接！"
 
-
-def Login_Cmd(self, event=None):
+def Login():
 	global HEADERS
 	global STUDENT_ID
 	global PASSWORD
-	self.headers = HEADERS
-	ID=self.ID.get()
-	passwd=self.PassWord.get()
-	v_code=self.vcode.get()
-	if v_code=="":
-		v_code=myOCR.myOCR_start(self.photo)
-		self.vcode.insert(0,v_code)
+	global Login_S
+	global ValidateCode
+	v_code=myOCR.myOCR_start(ValidateCode)
 	try:
-		logindata="operation=&usercode_text="+ID+"&userpwd_text="+passwd+"&checkcode_text="+v_code+"&submittype=%C8%B7+%C8%CF"
+		logindata="operation=&usercode_text="+STUDENT_ID+"&userpwd_text="+PASSWORD+"&checkcode_text="+v_code+"&submittype=%C8%B7+%C8%CF"
 		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
-		conn.request("POST","http://222.30.32.10/stdloginAction.do",logindata,self.headers)
+		conn.request("POST","http://222.30.32.10/stdloginAction.do",logindata,HEADERS)
 		res=conn.getresponse()
 		response=res.read()
 		content=response.decode("gb2312")
 		conn.close()
 	except:
-		self.Log.insert(1.0,"网络连接错误，无法连接到选课系统。请检查网络连接！\n")
-		if ReLoadData():
-			self.Refresh()
-		else:
-			return
+		print "网络连接错误，无法连接到选课系统。请检查网络连接！"
+		return False
 	
-	global Login_S
-	Login_S = False
-	self.err_code="未知错误"
 	
 	if content.find("stdtop") != -1:
 		Login_S = True
-		header = self.headers
-		STUDENT_ID=ID
-		PASSWORD=passwd
-		self.Log.insert(1.0,"登录成功！\n")
+		#print "登录成功！"
 	
-	get_v_code=True		
+	err_code = "未知错误！"		
 	if Login_S == False and (content.find(unicode("请输入正确的验证码","utf8")) != -1):
-		self.err_code="验证码错误！"
-		if not self.Refresh_Cmd():
-			get_v_code=False
-		else:
-			get_v_code=True
+		err_code="验证码错误！"
+		while not INIT():
+			continue
+		return Login()
 		
 	if Login_S == False and (content.find(u"用户不存在或密码错误") != -1):
-		self.err_code="用户不存在或密码错误！"
+		err_code="用户不存在或密码错误！"
 		
 	if Login_S == False and (content.find(u"忙") != -1 or content.find(u"负载") != -1):
-		self.err_code="系统忙，请稍后再试！"
-	
+		err_code="系统忙，请稍后再试！"
 	
 	if (Login_S != True):
-		self.Log.insert(1.0,self.err_code+'\n')
-		if not get_v_code:
-			self.Log.insert(1.0,'验证码刷新失败！\n')
-	return
+		print err_code
+	return Login_S
 	
-def AutoLogin(self):
+def AutoLogin():
 	global STUDENT_ID
 	global PASSWORD
 	global Login_S
-	global PROCESSING
-	global StopSignal
 	if STUDENT_ID=='' or PASSWORD=='':
-		err_code="无法验证用户名及密码，自动登录失败！\n"
-		self.Log.insert(1.0,err_code)
-		self.Log.update()
+		err_code="无法验证用户名及密码，自动登录失败！"
+		print err_code
 		return False
 	count=0
 	while count<5:
 		count+=1
-		self.Log.insert(1.0,'尝试重新登录...\n')
-		if not ReLoadData():
+		print '尝试重新登录...'
+		if not INIT():
 			continue
 		else:
-			self.ID.delete(0,END)
-			self.ID.insert(0,STUDENT_ID)
-			self.PassWord.delete(0,END)
-			self.PassWord.insert(0,PASSWORD)
-			if self.Refresh_Cmd():
-				pass
-			else:
-				self.photo=PIL.Image.open("ValidateCode.jpg")
-				self.im = PIL.ImageTk.PhotoImage(self.photo)
-				self.V_Pic= Label(self.top,image = self.im)
-				self.V_Pic.place(relx=0.05, rely=0.203, relwidth=0.327, relheight=0.053)
-			self.vcode.delete(0,END)
-			self.vcode.insert(0,myOCR.myOCR_start(self.photo))
-			self.Login_Cmd()
+			Login()
 		if not Login_S:
-			err_code='重新登录失败...3秒后重试\n'
-			self.Log.insert(1.0,err_code)
-			self.Log.update()
+			print '重新登录失败...3秒后重试'
 			for i in range(12):
 				time.sleep(0.25)
-				self.Log.update()
-				if (not PROCESSING) and StopSignal:
-					StopSignal=False
-					return False
 		else:
-			self.Log.insert(1.0,"登录成功。继续刷课。\n")
+			print "登录成功！"
 			return True
+	return False
 
 def Start_Cmd(self, event=None):
 	#------------------------------------------------------------------
@@ -364,7 +314,7 @@ def PostData(self, post_course_list, count):
 	postdata += "&de=%25&courseindex="
 	try:
 		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
-		conn.request("POST",UpUrl,postdata,headers)
+		conn.request("POST","http://222.30.32.10/xsxk/swichAction.do",postdata,headers)
 		res=conn.getresponse()
 	except:
 		self.Log.insert(1.0,"网络连接错误。请检查网络连接！\n")
@@ -428,46 +378,6 @@ def PostData(self, post_course_list, count):
 	#---------------------------------------------
 	return fail_course
 
-		
-def GetCourseCode(self):		
-	course_code=[]
-	tmp_code=self.Text12.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text11.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text10.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text9.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text8.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text7.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text6.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text5.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text4.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text3.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text2.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	tmp_code=self.Text1.get()
-	if tmp_code!='':
-		course_code.append(tmp_code)
-	return course_code
 	
 def CheckLogin(self):
 	global	Login_S
@@ -487,7 +397,7 @@ def CheckSystemStatus(self):
 		else:
 			return True
 	except:
-		self.Log.insert(1.0,"网络连接错误，无法连接到教务处系统。请检查网络连接！\n")
+		print "网络连接错误，无法连接到教务处系统。请检查网络连接！"
 		if ReLoadData():
 			self.Refresh_Cmd()
 		else:
@@ -500,8 +410,7 @@ def wait_for_system(self):
 	while not self.CheckSystemStatus():
 		if not PROCESSING:
 			return
-		self.Log.insert(1.0,"选课系统还没开~3秒后重试~\n")
-		self.Log.update()
+		print "Waiting... (3s)"
 		for j in range (0,12):
 			time.sleep(0.25)
 			self.Log.update()
@@ -509,26 +418,22 @@ def wait_for_system(self):
 				return
 	return
 	
-def GetName(self,c_code):
+def GetName(c_code):
 	if c_code == "":
 		return ""
 	h={
 			'Host': '222.30.32.3',
-			'Connection': 'keep-alive',
-			'Cache-Control': 'max-age=0',
 			'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
 			'Origin': 'http://222.30.32.3',
-			'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36',
 			'Content-Type': 'application/x-www-form-urlencoded',
 			'Referer': 'http://222.30.32.3/apps/xksc/index.asp',
 			'Accept-Encoding': 'gzip,deflate,sdch',
-			'Accept-Language': 'zh-CN,zh;q=0.8'
 	}
 	try:
-		conct=httplib.HTTPConnection('222.30.32.3',timeout=10)
-		formdata='strsearch='+c_code+'&radio=1&Submit=%CC%E1%BD%BB'
-		conct.request('POST','http://222.30.32.3/apps/xksc/search.asp',formdata,h)
-		contnt=conct.getresponse().read().decode("gb2312")
+		conct = httplib.HTTPConnection('222.30.32.3',timeout=10)
+		formdata = 'strsearch='+str(c_code)+'&radio=1&Submit=%CC%E1%BD%BB'
+		conct.request('POST','http://jwc.nankai.edu.cn/apps/xksc/index.asp',formdata,h)
+		contnt = conct.getresponse().read().decode("gb2312")
 		conct.close()
 	except:
 		return "无法获取课程名称"
@@ -537,17 +442,10 @@ def GetName(self,c_code):
 		return "wrong_course"
 	else:
 		contnt=contnt[pos:]
-		return re.findall(u"[0-9\u4e00-\u9fa5\uFF00-\uFFEF\-]+",contnt)[1].encode('utf8')
-	
-def illegal_list(self, check_list):
-	illegal_course=[]
-	illegal_info=[]
-	for i in range(len(check_list)):
-		name=self.GetName(check_list[i])
-		if (name=="无法获取课程名称") or (name=="wrong_course"):
-			illegal_course.append(check_list[i])
-			illegal_info.append(name)
-	return (illegal_course,illegal_info)
+		HTMLTarget_re = re.compile('</*T(D|R)>')
+		contnt = HTMLTarget_re.sub('|',contnt)
+		return re.findall(u"[0-9a-zA-Z\u4e00-\u9fa5\uFF00-\uFFEF\-\+、]+",contnt)[1].encode('utf8')
+
 
 
 if __name__ == "__main__":
@@ -560,4 +458,8 @@ if __name__ == "__main__":
 		ff.write(d)
 		f.close()
 		ff.close()
+	print ReLoadData()
+	print INIT()
+	print GetName('1920')
+	AutoLogin()
 
