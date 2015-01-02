@@ -4,7 +4,7 @@ Ver = 'CLI--0.0.1'
 
 import httplib
 import re
-import PIL.Image, PIL.ImageTk
+import PIL.Image
 import time
 
 import myOCR
@@ -81,7 +81,10 @@ def Login():
 	global PASSWORD
 	global LoginStatus
 	global ValidateCode
-	v_code=myOCR.myOCR_start(ValidateCode)
+	try:
+		v_code=myOCR.myOCR_start(ValidateCode)
+	except:
+		return False
 	try:
 		logindata="operation=&usercode_text="+STUDENT_ID+"&userpwd_text="+PASSWORD+"&checkcode_text="+v_code+"&submittype=%C8%B7+%C8%CF"
 		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
@@ -134,7 +137,7 @@ def AutoLogin():
 			Login()
 		if not LoginStatus:
 			print '重新登录失败...重试...'
-			time.sleep(1)
+			#time.sleep(1)
 		else:
 			print "登录成功！"
 			return True

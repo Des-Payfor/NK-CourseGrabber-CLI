@@ -1,10 +1,12 @@
 #coding=utf8
 
 #----------------------------------------
+#version: 0.2
 #usage:myOCR_start(im)
 #----------------------------------------
 import PIL.ImageEnhance
 import PIL.Image
+from timeout import timeout
 
 def remove_isolate(ran_x, ran_y):
 	result_x = []
@@ -143,7 +145,8 @@ def getNumber(im):
 		NumberList[i] = bit2str(bit, ran_x, ran_y, i)
 	#print NumberList
 	return NumberList
-			
+
+@timeout(2)
 def myOCR_start(im):
 	characteristic_value = [''for i in range(10)]
 	characteristic_file = open("vcodeData2",'r')
