@@ -2,14 +2,9 @@
 #-*- coding:utf-8 -*-
 Ver = 'CLI--0.0.1'
 
-import select
 import httplib
 import re
-import os, sys
 import PIL.Image, PIL.ImageTk
-import urllib2
-import urllib
-import cookielib
 import time
 
 import myOCR
@@ -145,7 +140,7 @@ def AutoLogin():
 			return True
 	return False
 
-def Welcome():
+def Start():
 	#------------------------------------------------------------------
 	global LoginStatus
 	global HEADERS
@@ -155,60 +150,62 @@ def Welcome():
 	#Welcome message
 	#------------------------------------------------------------------
 	#Get necessary information
-	STUDENT_ID = input_raw("学号：")
-	PASSWORD = input_raw("密码：")
+	STUDENT_ID = raw_input("学号：")
+	PASSWORD = raw_input("密码：")
+	while not Login():
+		print "Fail to login! Try again please."
+		STUDENT_ID = raw_input("学号：")
+		PASSWORD = raw_input("密码：")
+	print "登录成功！"
 	#------------------------------------------------------------------
 	#Get course code
-	
+	course = []
+	c_code = '#'
+	try:
+		c_code = raw_input("Enter course code(input # to terminate): ")
+	except:
+		pass
+	while c_code != '' and c_code != '#':
+		course.append(c_code)
+		c_code = '#'
+		try:
+			c_code = raw_input("Enter course code(input # to terminate): ")
+		except:
+			pass
+		if c_code == '#':
+			break
 	#------------------------------------------------------------------
-	if not self.CheckSystemStatus():
-		self.Log.delete(20.0,END)
-		self.wait_for_system()
-		if not self.CheckSystemStatus():
-			if not StopSignal:
-				err_code="未知错误。请重新点击“开始刷课”！"
-				self.Log.insert(1.0,err_code+'\n')
-				self.Stop_Cmd()
-				StopSignal=False
-			else:
-				StopSignal=False
-			return
+	if not CheckSystemStatus(): # and False:
+		print 'Waiting for 222.30.32.10...'
+		wait_for_system()
+		if not CheckSystemStatus():
+			err_code = "Unexpected Error!"
+			Stop()
 	#------------------------------------------------------------------
-
+	print "Using queue mode as default"
 	#------------------------------------------------------------------
-	self.Log.delete(0.0,END)
-	self.Log.insert(1.0,"Starting........Connecting............\n")
-	self.Log.update()
+	print "Starting........"
 	#------------------------------------------------------------------
-	use_queue=True
-	mode='queue'
-	count=0
-	if self.Var.get()=='1' or self.Var.get()=='':
-		use_queue=True
-	else:
-		use_queue=False
-	while PROCESSING:
+	mode = 'queue'
+	count = 0
+	while True:
 		count += 1
-		if use_queue:
-			mode='queue'
-		else:
-			mode='stack'
-		post_course,course=self.select_course(course,mode)
+		post_course,course=select_course(course,mode)
 		#print post_course
-		#course=self.select_course(course,mode)[1]
+		#course=select_course(course,mode)[1]
 		#print course
-		fail_course=self.PostData(post_course,count)
+		fail_course=PostData(post_course,count)
 		#print fail_course
-		course=self.merge_course_list(course,fail_course,mode)
+		course=merge_course_list(course,fail_course,mode)
 		#print course
-		if len(course)>0:
+		if len(course) > 0: # or 1:
+			#course.append('0101')
+			INIT()
+			AutoLogin()
 			pass
 		else:
-			succ_code="刷完啦~\n"
-			self.Log.insert(1.0,succ_code)
-			self.Log.update()
-			self.Stop_Cmd()
-			StopSignal=False
+			print "刷完啦~\n"
+			Stop()
 
 def Stop():
 	print ">>>>>>已停止<<<<<<"
@@ -244,7 +241,7 @@ def PostData(post_course_list, count):
 		course[i]=post_course_list[i]
 	info='第'+str(count)+'次抢课进行中……正在抢：\n'
 	for i in range(len(post_course_list)):
-		info += (course[i]+'\t'+self.GetName(course[i])+'\n')
+		info += (course[i]+'\t'+GetName(course[i])+'\n')
 	print info
 
 	postdata="operation=xuanke&index="
@@ -288,7 +285,7 @@ def PostData(post_course_list, count):
 		if re.search(course_code,Data) != None:
 			fail_course.append(course_code)
 		else:
-			print course_code+' '+self.GetName(course_code)
+			print course_code+' '+GetName(course_code)
 	#--------------------输出选课系统状态返回---------------------
 	print Data
 	if len(fail_course)==0:
@@ -328,11 +325,8 @@ def CheckSystemStatus():
 	return True
 
 def wait_for_system():
-	global PROCESSING
 	while not CheckSystemStatus():
-		if not PROCESSING:
-			return
-		print "Waiting... (3s)"
+		print "Waiting for 222.30.32.10... (3s)"
 		for j in range (0,12):
 			time.sleep(0.25)
 	return
@@ -377,7 +371,5 @@ if __name__ == "__main__":
 		ff.write(d)
 		f.close()
 		ff.close()
-	print ReLoadData()
-	print INIT()
-	print GetName('1920')
-	AutoLogin()
+	INIT()
+	Start()
