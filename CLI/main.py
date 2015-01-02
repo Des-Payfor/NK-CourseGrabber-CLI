@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-Ver = 'CLI--0.0.1'
+Ver = 'CLI--0.0.2'
 
 import httplib
 import re
 import PIL.Image
 import time
-
 import myOCR
 
 #----------------------------------------------------
@@ -18,10 +17,9 @@ URL = {
 }
 
 LoginStatus = False
-StopSignal = False
 
-STUDENT_ID = '1210020'
-PASSWORD = '****'
+STUDENT_ID = ''
+PASSWORD = ''
 
 HEADERS = {
 'Accept':' application/x-ms-application, image/jpeg, application/xaml+xml, image/gif, image/pjpeg, application/x-ms-xbap, */*',
@@ -149,14 +147,18 @@ def Start():
 	global HEADERS
 	global STUDENT_ID
 	global PASSWORD
+	global Ver
 	#------------------------------------------------------------------
 	#Welcome message
+	print "###############################################"
+	print "#Course Grabber for NKU -- Version: "+Ver+"#"
+	print "###############################################"
 	#------------------------------------------------------------------
 	#Get necessary information
 	STUDENT_ID = raw_input("学号：")
 	PASSWORD = raw_input("密码：")
 	while not Login():
-		print "Fail to login! Try again please."
+		print "登录失败！请重试！"
 		STUDENT_ID = raw_input("学号：")
 		PASSWORD = raw_input("密码：")
 	print "登录成功！"
@@ -188,6 +190,8 @@ def Start():
 	print "Using queue mode as default"
 	#------------------------------------------------------------------
 	print "Starting........"
+	print "GOOD LUCK!!!"
+	time.sleep(1)
 	#------------------------------------------------------------------
 	mode = 'queue'
 	count = 0
@@ -242,7 +246,7 @@ def PostData(post_course_list, count):
 		course.append('')
 	for i in range(len(post_course_list)):
 		course[i]=post_course_list[i]
-	info='第'+str(count)+'次抢课进行中……正在抢：\n'
+	info='#'+str(count)+':\n'
 	for i in range(len(post_course_list)):
 		info += (course[i]+'\t'+GetName(course[i])+'\n')
 	print info
@@ -295,17 +299,17 @@ def PostData(post_course_list, count):
 		print '刷完啦~'
 		return fail_course
 	#-----------------------------------------------------------
-	sleep_time = 5
-	print '-----------------休眠'+str(sleep_time)+'秒--------------------'
+	#sleep_time = 5
+	#print '-----------------休眠'+str(sleep_time)+'秒--------------------'
 	#-------------保持刷新防止假死------------
-	for i in range(sleep_time):
-		print sleep_time - i,
-		time.sleep(0.25)
-		for j in range(3):
-			print '.',
-			time.sleep(0.25)
-		print ' ',
-	print ''
+	#for i in range(sleep_time):
+	#	print sleep_time - i,
+	#	time.sleep(0.25)
+	#	for j in range(3):
+	#		print '.',
+	#		time.sleep(0.25)
+	#	print ' ',
+	#print ''
 	#---------------------------------------------
 	return fail_course
 

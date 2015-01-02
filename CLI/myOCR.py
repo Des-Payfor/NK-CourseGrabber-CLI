@@ -5,7 +5,6 @@
 #usage:myOCR_start(im)
 #----------------------------------------
 import PIL.ImageEnhance
-import PIL.Image
 from timeout import timeout
 
 def remove_isolate(ran_x, ran_y):
@@ -146,7 +145,7 @@ def getNumber(im):
 	#print NumberList
 	return NumberList
 
-@timeout(2)
+@timeout(1)
 def myOCR_start(im):
 	characteristic_value = [''for i in range(10)]
 	characteristic_file = open("vcodeData2",'r')
