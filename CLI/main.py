@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-Ver = 'CLI--0.0.2'
+Ver = 'CLI--0.0.3'
 
 import httplib
 import re
@@ -39,7 +39,7 @@ def ReLoadData():
 	global HEADERS
 	global LoginStatus
 	try:
-		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
+		conn=httplib.HTTPConnection("222.30.32.10",timeout=20)
 		conn.request("GET","/")
 		res=conn.getresponse()
 		cookie=res.getheader("Set-Cookie")
@@ -49,7 +49,7 @@ def ReLoadData():
 	HEADERS['Cookie'] = cookie
 	#get ValidateCode
 	try:
-		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
+		conn=httplib.HTTPConnection("222.30.32.10",timeout=20)
 		conn.request("GET","http://222.30.32.10/ValidateCode","",HEADERS)
 		res=conn.getresponse()
 		f=open("ValidateCode.jpg","w+b")
@@ -85,7 +85,7 @@ def Login():
 		return False
 	try:
 		logindata="operation=&usercode_text="+STUDENT_ID+"&userpwd_text="+PASSWORD+"&checkcode_text="+v_code+"&submittype=%C8%B7+%C8%CF"
-		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
+		conn=httplib.HTTPConnection("222.30.32.10",timeout=20)
 		conn.request("POST","http://222.30.32.10/stdloginAction.do",logindata,HEADERS)
 		res=conn.getresponse()
 		response=res.read()
@@ -195,21 +195,25 @@ def Start():
 	#------------------------------------------------------------------
 	mode = 'queue'
 	count = 0
+	MergeList = True
 	while True:
 		count += 1
-		post_course,course=select_course(course,mode)
-		#print post_course
-		#course=select_course(course,mode)[1]
-		#print course
-		fail_course=PostData(post_course,count)
-		#print fail_course
-		course=merge_course_list(course,fail_course,mode)
-		#print course
+		if len(course)<=4:
+			course = PostData(course,count)
+		else:
+			post_course,course = select_course(course,mode)
+			#print post_course
+			#course=select_course(course,mode)[1]
+			#print course
+			fail_course = PostData(post_course,count)
+			#print fail_course
+			course = merge_course_list(course,fail_course,mode)
+			#print course
 		if len(course) > 0: # or 1:
 			#course.append('0101')
 			INIT()
 			AutoLogin()
-			pass
+			time.sleep(0.5)
 		else:
 			print "刷完啦~\n"
 			Stop()
@@ -259,7 +263,7 @@ def PostData(post_course_list, count):
 			postdata += ("&xkxh"+str(i+1)+"=")
 	postdata += "&de=%25&courseindex="
 	try:
-		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
+		conn=httplib.HTTPConnection("222.30.32.10",timeout=20)
 		conn.request("POST","http://222.30.32.10/xsxk/swichAction.do",postdata,HEADERS)
 		res=conn.getresponse()
 	except:
@@ -319,7 +323,7 @@ def CheckSystemStatus():
 	XKButton = []
 	list=''
 	try:
-		conn=httplib.HTTPConnection("222.30.32.10",timeout=10)
+		conn=httplib.HTTPConnection("222.30.32.10",timeout=20)
 		conn.request("GET","http://222.30.32.10/xsxk/selectMianInitAction.do",list,HEADERS)
 		XKButton = XuanKeButton.findall(conn.getresponse().read().decode("gbk").encode('utf-8'))
 		if XKButton == [] :
@@ -333,9 +337,9 @@ def CheckSystemStatus():
 
 def wait_for_system():
 	while not CheckSystemStatus():
-		print "Waiting for 222.30.32.10... (3s)"
-		for j in range (0,12):
-			time.sleep(0.25)
+		print "Waiting for 222.30.32.10... (5 minutes)"
+		for j in range (0,4):
+			time.sleep(0.25*300)
 	return
 
 def GetName(c_code):
@@ -350,7 +354,7 @@ def GetName(c_code):
 			'Accept-Encoding': 'gzip,deflate,sdch',
 	}
 	try:
-		conct = httplib.HTTPConnection('222.30.32.3',timeout=10)
+		conct = httplib.HTTPConnection('222.30.32.3',timeout=20)
 		formdata = 'strsearch='+str(c_code)+'&radio=1&Submit=%CC%E1%BD%BB'
 		conct.request('POST','http://jwc.nankai.edu.cn/apps/xksc/index.asp',formdata,h)
 		contnt = conct.getresponse().read().decode("gb2312")
