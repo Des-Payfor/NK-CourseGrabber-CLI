@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-*- coding:utf-8 -*-
-Ver = 'CLI--0.0.3'
+Ver = 'CLI--0.0.4'
 
 import httplib
 import re
@@ -121,6 +121,12 @@ def AutoLogin():
 	global STUDENT_ID
 	global PASSWORD
 	global LoginStatus
+	global HEADERS
+	#Logout
+	conn = httplib.HTTPConnection('222.30.32.10')
+	conn.request('GET','http://222.30.32.10/exitAction.do','',HEADERS)
+	conn.close()
+	LoginStatus = False
 	if STUDENT_ID=='' or PASSWORD=='':
 		err_code="无法验证用户名及密码，自动登录失败！"
 		print err_code
@@ -196,24 +202,29 @@ def Start():
 	mode = 'queue'
 	count = 0
 	MergeList = True
+	recivedData = False
 	while True:
 		count += 1
 		if len(course)<=4:
-			course = PostData(course,count)
+			course,recivedData = PostData(course,count)
+			if not recivedData:
+				count -= 1
 		else:
 			post_course,course = select_course(course,mode)
 			#print post_course
 			#course=select_course(course,mode)[1]
 			#print course
-			fail_course = PostData(post_course,count)
+			fail_course,recivedData = PostData(post_course,count)
+			if not recivedData:
+				count -= 1
 			#print fail_course
 			course = merge_course_list(course,fail_course,mode)
 			#print course
 		if len(course) > 0: # or 1:
 			#course.append('0101')
-			INIT()
-			AutoLogin()
-			time.sleep(0.5)
+			#AutoLogin()
+			time.sleep(1.5)
+			pass
 		else:
 			print "刷完啦~\n"
 			Stop()
@@ -245,6 +256,7 @@ def merge_course_list(course_list, selected_list, mode):
 		return course_list
 
 def PostData(post_course_list, count):
+	global HEADERS
 	course=[]
 	for i in range(4):
 		course.append('')
@@ -261,7 +273,8 @@ def PostData(post_course_list, count):
 			postdata += ("&xkxh"+str(i+1)+"="+course[i])
 		else:
 			postdata += ("&xkxh"+str(i+1)+"=")
-	postdata += "&de=%25&courseindex="
+	#postdata += "&de=%25&courseindex="
+	postdata += "&departIncode=%25&courseindex="
 	try:
 		conn=httplib.HTTPConnection("222.30.32.10",timeout=20)
 		conn.request("POST","http://222.30.32.10/xsxk/swichAction.do",postdata,HEADERS)
@@ -269,15 +282,19 @@ def PostData(post_course_list, count):
 	except:
 		print "网络连接错误。请检查网络连接！"
 		if not AutoLogin():
-			return post_course_list
+			return (post_course_list,True)
 	#太久不管的话cookie会失效
 	if res.status == 302:
 		print "登录超时，重新登录中...\n"
 		LoginStatus = False
 		if not AutoLogin():
-			return post_course_list
+			return (post_course_list,True)
 	response=res.read()
+	conn.close()
 	content=response.decode("gbk").encode('utf-8')
+	if len(content) == 0:
+		print "未收到返回的数据..."
+		return (post_course_list,False)
 	#----------------------------------------------------------
 	#----------------------抓取-------------
 	reg = re.compile(u'"BlueBigText">[\s\S]*</font>')
@@ -293,7 +310,8 @@ def PostData(post_course_list, count):
 	#----------------------------------------
 	fail_course=[]
 	for course_code in post_course_list:
-		if re.search(course_code,Data) != None:
+		#if re.search(course_code,Data) != None:
+		if not CheckSelected(course_code):
 			fail_course.append(course_code)
 		else:
 			print course_code+' '+GetName(course_code)
@@ -301,7 +319,7 @@ def PostData(post_course_list, count):
 	print Data
 	if len(fail_course)==0:
 		print '刷完啦~'
-		return fail_course
+		return (fail_course,True)
 	#-----------------------------------------------------------
 	#sleep_time = 5
 	#print '-----------------休眠'+str(sleep_time)+'秒--------------------'
@@ -315,7 +333,7 @@ def PostData(post_course_list, count):
 	#	print ' ',
 	#print ''
 	#---------------------------------------------
-	return fail_course
+	return (fail_course,True)
 
 def CheckSystemStatus():
 	global HEADERS
@@ -370,7 +388,19 @@ def GetName(c_code):
 		contnt = HTMLTarget_re.sub('|',contnt)
 		return re.findall(u"[0-9a-zA-Z\u4e00-\u9fa5\uFF00-\uFFEF\-\+、]+",contnt)[1].encode('utf8')
 
-
+def CheckSelected(course_code):
+	name = GetName(course_code)
+	global HEADERS
+	try:
+		conn = httplib.HTTPConnection('222.30.32.10',timeout=20)
+		conn.request('GET','http://222.30.32.10/xsxk/selectedAction.do?operation=kebiao','',HEADERS)
+		content = conn.getresponse().read()#.decode("gb2312")
+		conn.close()
+	except:
+		return False
+	if content.find(name) != -1:
+		return True
+	return False
 
 if __name__ == "__main__":
 	try:
